@@ -25,7 +25,7 @@ QueueHandle_t xQueueBTN;
 SemaphoreHandle_t xSemaphore_r;
 void btn_callback(uint gpio, uint32_t events){
     int button_pressed;
-    if(events=0x04){
+    if(events == GPIO_IRQ_EDGE_FALL){
         if(gpio == A_button){
             button_pressed=1;
             
