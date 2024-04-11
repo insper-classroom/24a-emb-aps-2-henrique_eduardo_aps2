@@ -23,33 +23,97 @@
 
 QueueHandle_t xQueueBTN;
 SemaphoreHandle_t xSemaphore_r;
+
+typedef struct {
+    int button;
+    int level;
+} data;
+
 void btn_callback(uint gpio, uint32_t events){
     int button_pressed;
     if(events == GPIO_IRQ_EDGE_FALL){
         if(gpio == A_button){
             button_pressed=1;
+            data d;
+            d.button = 1;
+            d.level = 1;
             
-            xQueueSendFromISR(xQueueBTN,&button_pressed,0);
+            xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == S_button){
             button_pressed=2;
+            data d;
+            d.button = 2;
+            d.level = 1;
             
-            xQueueSendFromISR(xQueueBTN,&button_pressed,0);
+            xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == J_button){
             button_pressed=3;
+            data d;
+            d.button = 3;
+            d.level = 1;
             
-            xQueueSendFromISR(xQueueBTN,&button_pressed,0);
+            xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == K_button){
             button_pressed=4;
+            data d;
+            d.button = 4;
+            d.level = 1;
             
-            xQueueSendFromISR(xQueueBTN,&button_pressed,0);
+            xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == L_button){
             button_pressed=5;
+            data d;
+            d.button = 5;
+            d.level = 1;
             
-            xQueueSendFromISR(xQueueBTN,&button_pressed,0);
+            xQueueSendFromISR(xQueueBTN,&d,0);
+        }
+    }
+
+    if(events == GPIO_IRQ_EDGE_RISE){
+        if(gpio == A_button){
+            button_pressed=1;
+            data d;
+            d.button = 1;
+            d.level = 0;
+            
+            xQueueSendFromISR(xQueueBTN,&d,0);
+        }
+        if(gpio == S_button){
+            button_pressed=2;
+            data d;
+            d.button = 2;
+            d.level = 0;
+            
+            xQueueSendFromISR(xQueueBTN,&d,0);
+        }
+        if(gpio == J_button){
+            button_pressed=3;
+            data d;
+            d.button = 3;
+            d.level = 0;
+            
+            xQueueSendFromISR(xQueueBTN,&d,0);
+        }
+        if(gpio == K_button){
+            button_pressed=4;
+            data d;
+            d.button = 4;
+            d.level = 0;
+            
+            xQueueSendFromISR(xQueueBTN,&d,0);
+        }
+        if(gpio == L_button){
+            button_pressed=5;
+            data d;
+            d.button = 5;
+            d.level = 0;
+            
+            xQueueSendFromISR(xQueueBTN,&d,0);
         }
     }
 }
@@ -84,43 +148,48 @@ void hc06_task(void *p) {
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
     hc06_init("SelberEmbarcados", "1234");
-    int btn;
+    data d;
     while (true) {
         // if(xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE){
-            if (xQueueReceive(xQueueBTN,&btn,pdMS_TO_TICKS(100))){
+            if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
 
-                if(btn==1){
+                if(d.button==1){
                     printf("Enviando o botão A\n");
                     
                     uart_putc_raw(HC06_UART_ID, 'A');
+                    uart_putc_raw(HC06_UART_ID, d.level);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     
                 }
-                if(btn==2){
+                if(d.button==2){
                     printf("Enviando o botão S\n");
                     
                     uart_putc_raw(HC06_UART_ID, 'S');
+                    uart_putc_raw(HC06_UART_ID, d.level);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     
                 }
-                if(btn==3){
+                if(d.button==3){
                     printf("Enviando o botão J\n");
                     
                     uart_putc_raw(HC06_UART_ID, 'J');
+                    uart_putc_raw(HC06_UART_ID, d.level);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     
                 }
-                if(btn==4){
+                if(d.button==4){
                     printf("Enviando o botão K\n");
                     
                     uart_putc_raw(HC06_UART_ID, 'K');
+                    uart_putc_raw(HC06_UART_ID, d.level);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     
                 }
-                if(btn==5){
+                if(d.button==5){
                     printf("Enviando o botão L\n");
                     
                     uart_putc_raw(HC06_UART_ID, 'L');
+                    uart_putc_raw(HC06_UART_ID, d.level);
                     vTaskDelay(pdMS_TO_TICKS(100));
                     
                 }
@@ -132,7 +201,7 @@ void hc06_task(void *p) {
 
 int main() {
     stdio_init_all();
-    xQueueBTN = xQueueCreate(32, sizeof(int));
+    xQueueBTN = xQueueCreate(32, sizeof(data));
     gpio_init(A_button);
     gpio_set_dir(A_button,GPIO_IN);
     gpio_pull_up(A_button);
@@ -152,11 +221,11 @@ int main() {
 
     xTaskCreate(hc06_task, "UART_Task 1", 4096, NULL, 1, NULL);
     // xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
-    gpio_set_irq_enabled_with_callback(A_button, GPIO_IRQ_EDGE_FALL , true, &btn_callback);
-    gpio_set_irq_enabled(S_button, GPIO_IRQ_EDGE_FALL , true);
-    gpio_set_irq_enabled(J_button, GPIO_IRQ_EDGE_FALL , true);
-    gpio_set_irq_enabled(K_button, GPIO_IRQ_EDGE_FALL , true);
-    gpio_set_irq_enabled(L_button, GPIO_IRQ_EDGE_FALL , true);
+    gpio_set_irq_enabled_with_callback(A_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &btn_callback);
+    gpio_set_irq_enabled(S_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
+    gpio_set_irq_enabled(J_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
+    gpio_set_irq_enabled(K_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
+    gpio_set_irq_enabled(L_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     
     //xSemaphore_r = xSemaphoreCreateBinary();
     vTaskStartScheduler();
