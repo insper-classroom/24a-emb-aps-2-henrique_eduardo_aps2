@@ -23,20 +23,24 @@
 
 QueueHandle_t xQueueBTN;
 SemaphoreHandle_t xSemaphore_r;
+volatile absolute_time_t start_time;
 
 typedef struct {
     int button;
     int level;
+    absolute_time_t start_time;
 } data;
 
 void btn_callback(uint gpio, uint32_t events){
     int button_pressed;
     if(events == GPIO_IRQ_EDGE_FALL){
+        
         if(gpio == A_button){
             button_pressed=1;
             data d;
             d.button = 1;
             d.level = 1;
+            d.start_time=get_absolute_time();
             
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
@@ -149,49 +153,52 @@ void hc06_task(void *p) {
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
     hc06_init("SelberEmbarcados", "1234");
     data d;
+    static absolute_time_t end_time;
     while (true) {
         // if(xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE){
             if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
-
-                if(d.button==1){
-                    printf("Enviando o botão A\n");
-                    
-                    uart_putc_raw(HC06_UART_ID, 'A');
-                    uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
-                }
-                if(d.button==2){
-                    printf("Enviando o botão S\n");
-                    
-                    uart_putc_raw(HC06_UART_ID, 'S');
-                    uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
-                }
-                if(d.button==3){
-                    printf("Enviando o botão J\n");
-                    
-                    uart_putc_raw(HC06_UART_ID, 'J');
-                    uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
-                }
-                if(d.button==4){
-                    printf("Enviando o botão K\n");
-                    
-                    uart_putc_raw(HC06_UART_ID, 'K');
-                    uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
-                }
-                if(d.button==5){
-                    printf("Enviando o botão L\n");
-                    
-                    uart_putc_raw(HC06_UART_ID, 'L');
-                    uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
+                uint32_t delta_t = absolute_time_diff_us(d.start_time, end_time);
+                if(delta_t<10000){   //mudar dps para o botão ligado com o capacitor
+                    if(d.button==1){
+                        printf("Enviando o botão A\n");
+                        
+                        uart_putc_raw(HC06_UART_ID, 'A');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        
+                    }
+                    if(d.button==2){
+                        printf("Enviando o botão S\n");
+                        
+                        uart_putc_raw(HC06_UART_ID, 'S');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        
+                    }
+                    if(d.button==3){
+                        printf("Enviando o botão J\n");
+                        
+                        uart_putc_raw(HC06_UART_ID, 'J');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        
+                    }
+                    if(d.button==4){
+                        printf("Enviando o botão K\n");
+                        
+                        uart_putc_raw(HC06_UART_ID, 'K');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        
+                    }
+                    if(d.button==5){
+                        printf("Enviando o botão L\n");
+                        
+                        uart_putc_raw(HC06_UART_ID, 'L');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                        vTaskDelay(pdMS_TO_TICKS(100));
+                        
+                    }
                 }
             }
              vTaskDelay(pdMS_TO_TICKS(1));
