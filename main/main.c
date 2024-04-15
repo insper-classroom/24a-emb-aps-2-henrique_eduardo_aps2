@@ -23,27 +23,25 @@
 
 QueueHandle_t xQueueBTN;
 SemaphoreHandle_t xSemaphore_r;
-volatile absolute_time_t start_time;
 
 typedef struct {
     int button;
     int level;
-    absolute_time_t start_time;
 } data;
 
 void btn_callback(uint gpio, uint32_t events){
     int button_pressed;
     if(events == GPIO_IRQ_EDGE_FALL){
-        
         if(gpio == A_button){
+            button_pressed=1;
             data d;
             d.button = 1;
             d.level = 1;
-            d.start_time=get_absolute_time();
             
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == S_button){
+            button_pressed=2;
             data d;
             d.button = 2;
             d.level = 1;
@@ -51,6 +49,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == J_button){
+            button_pressed=3;
             data d;
             d.button = 3;
             d.level = 1;
@@ -58,6 +57,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == K_button){
+            button_pressed=4;
             data d;
             d.button = 4;
             d.level = 1;
@@ -65,6 +65,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == L_button){
+            button_pressed=5;
             data d;
             d.button = 5;
             d.level = 1;
@@ -75,6 +76,7 @@ void btn_callback(uint gpio, uint32_t events){
 
     if(events == GPIO_IRQ_EDGE_RISE){
         if(gpio == A_button){
+            button_pressed=1;
             data d;
             d.button = 1;
             d.level = 0;
@@ -82,6 +84,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == S_button){
+            button_pressed=2;
             data d;
             d.button = 2;
             d.level = 0;
@@ -89,6 +92,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == J_button){
+            button_pressed=3;
             data d;
             d.button = 3;
             d.level = 0;
@@ -96,6 +100,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == K_button){
+            button_pressed=4;
             data d;
             d.button = 4;
             d.level = 0;
@@ -103,6 +108,7 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == L_button){
+            button_pressed=5;
             data d;
             d.button = 5;
             d.level = 0;
@@ -143,52 +149,39 @@ void hc06_task(void *p) {
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
     hc06_init("SelberEmbarcados", "1234");
     data d;
-    static absolute_time_t end_time;
     while (true) {
         // if(xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE){
             if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
-                uint32_t delta_t = absolute_time_diff_us(d.start_time, end_time);
-                if(delta_t<10000){   //mudar dps para o botão ligado com o capacitor
-                    if(d.button==1){
-                        printf("Enviando o botão A\n");
-                        
-                        uart_putc_raw(HC06_UART_ID, 'A');
-                        uart_putc_raw(HC06_UART_ID, d.level);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        
-                    }
-                    if(d.button==2){
-                        printf("Enviando o botão S\n");
-                        
-                        uart_putc_raw(HC06_UART_ID, 'S');
-                        uart_putc_raw(HC06_UART_ID, d.level);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        
-                    }
-                    if(d.button==3){
-                        printf("Enviando o botão J\n");
-                        
-                        uart_putc_raw(HC06_UART_ID, 'J');
-                        uart_putc_raw(HC06_UART_ID, d.level);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        
-                    }
-                    if(d.button==4){
-                        printf("Enviando o botão K\n");
-                        
-                        uart_putc_raw(HC06_UART_ID, 'K');
-                        uart_putc_raw(HC06_UART_ID, d.level);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        
-                    }
-                    if(d.button==5){
-                        printf("Enviando o botão L\n");
-                        
-                        uart_putc_raw(HC06_UART_ID, 'L');
-                        uart_putc_raw(HC06_UART_ID, d.level);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        
-                    }
+
+                if(d.button==1){                    
+                    uart_putc_raw(HC06_UART_ID, 'A');
+                    uart_putc_raw(HC06_UART_ID, d.level);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    
+                }
+                if(d.button==2){
+                    uart_putc_raw(HC06_UART_ID, 'S');
+                    uart_putc_raw(HC06_UART_ID, d.level);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    
+                }
+                if(d.button==3){                    
+                    uart_putc_raw(HC06_UART_ID, 'J');
+                    uart_putc_raw(HC06_UART_ID, d.level);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    
+                }
+                if(d.button==4){                    
+                    uart_putc_raw(HC06_UART_ID, 'K');
+                    uart_putc_raw(HC06_UART_ID, d.level);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    
+                }
+                if(d.button==5){                    
+                    uart_putc_raw(HC06_UART_ID, 'L');
+                    uart_putc_raw(HC06_UART_ID, d.level);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    
                 }
             }
              vTaskDelay(pdMS_TO_TICKS(1));
@@ -214,7 +207,6 @@ int main() {
     gpio_init(L_button);
     gpio_set_dir(L_button,GPIO_IN);
     gpio_pull_up(L_button);
-    printf("Start bluetooth task\n");
 
     xTaskCreate(hc06_task, "UART_Task 1", 4096, NULL, 1, NULL);
     // xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
