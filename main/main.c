@@ -36,7 +36,6 @@ void btn_callback(uint gpio, uint32_t events){
     if(events == GPIO_IRQ_EDGE_FALL){
         
         if(gpio == A_button){
-            button_pressed=1;
             data d;
             d.button = 1;
             d.level = 1;
@@ -45,7 +44,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == S_button){
-            button_pressed=2;
             data d;
             d.button = 2;
             d.level = 1;
@@ -53,7 +51,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == J_button){
-            button_pressed=3;
             data d;
             d.button = 3;
             d.level = 1;
@@ -61,7 +58,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == K_button){
-            button_pressed=4;
             data d;
             d.button = 4;
             d.level = 1;
@@ -69,7 +65,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == L_button){
-            button_pressed=5;
             data d;
             d.button = 5;
             d.level = 1;
@@ -80,7 +75,6 @@ void btn_callback(uint gpio, uint32_t events){
 
     if(events == GPIO_IRQ_EDGE_RISE){
         if(gpio == A_button){
-            button_pressed=1;
             data d;
             d.button = 1;
             d.level = 0;
@@ -88,7 +82,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == S_button){
-            button_pressed=2;
             data d;
             d.button = 2;
             d.level = 0;
@@ -96,7 +89,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == J_button){
-            button_pressed=3;
             data d;
             d.button = 3;
             d.level = 0;
@@ -104,7 +96,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == K_button){
-            button_pressed=4;
             data d;
             d.button = 4;
             d.level = 0;
@@ -112,7 +103,6 @@ void btn_callback(uint gpio, uint32_t events){
             xQueueSendFromISR(xQueueBTN,&d,0);
         }
         if(gpio == L_button){
-            button_pressed=5;
             data d;
             d.button = 5;
             d.level = 0;
