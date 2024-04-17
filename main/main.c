@@ -5,13 +5,10 @@
 #include <task.h>
 #include <semphr.h>
 #include <queue.h>
-
 #include <string.h>
-
 #include "pico/stdlib.h"
 #include "hardware/adc.h"
 #include <stdio.h>
-
 #include "hc06.h"
 #define A_button 11
 #define S_button 12
@@ -117,31 +114,30 @@ void btn_callback(uint gpio, uint32_t events){
         }
     }
 }
-// void y_task(void *p) {
-//     adc_init();
-//     adc_gpio_init(ADC_y);
-//     int envia = 0;
-//     while(true) {
-//         adc_select_input(ADC_y_ID);
-    
-//         int result = adc_read();
-//         result -= 2047;
-//         result = result * 255 / 2047;
 
-//         if (result <= 140 + 30 && result >= 110) {
-//             result = 0;
-            
-//         }
-        
+void y_task(void *p) {
+    adc_init();
+    adc_gpio_init(ADC_y);
+    int envia = 0;
+    while(true) {
+        adc_select_input(ADC_y_ID);
+    
+        int result = adc_read();
+        result -= 2047;
+        result = result * 255 / 2047;
          
-//         if (result > 200) {                 
-//             xSemaphoreGive(xSemaphore_r);
-                
-//         }
+        if ((result > 240 || result < -240) && envia == 0) {                 
+            xSemaphoreGive(xSemaphore_r);
+            envia = 1;   
+        }
+
+        if ((result < 200 && result > -200) && envia == 1) {                 
+            envia = 0;  
+        }
         
-//         vTaskDelay(pdMS_TO_TICKS(100));
-//     }
-// }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
 
 void hc06_task(void *p) {
     uart_init(HC06_UART_ID, HC06_BAUD_RATE);
@@ -150,45 +146,65 @@ void hc06_task(void *p) {
     hc06_init("SelberEmbarcados", "1234");
     data d;
     while (true) {
-        // if(xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE){
-            if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
-
+        if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
+            if (d.level == 0)
+            {
                 if(d.button==1){                    
                     uart_putc_raw(HC06_UART_ID, 'A');
                     uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
+
                 }
                 if(d.button==2){
                     uart_putc_raw(HC06_UART_ID, 'S');
                     uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
+
                 }
                 if(d.button==3){                    
                     uart_putc_raw(HC06_UART_ID, 'J');
                     uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
+
                 }
                 if(d.button==4){                    
                     uart_putc_raw(HC06_UART_ID, 'K');
                     uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
+
                 }
                 if(d.button==5){                    
                     uart_putc_raw(HC06_UART_ID, 'L');
                     uart_putc_raw(HC06_UART_ID, d.level);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    
                 }
             }
-             vTaskDelay(pdMS_TO_TICKS(1));
-        // }
+            
+            else
+            {
+                if(xSemaphoreTake(xSemaphore_r, pdMS_TO_TICKS(500)) == pdTRUE){
+                    if(d.button==1){                    
+                        uart_putc_raw(HC06_UART_ID, 'A');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                    }
+                    if(d.button==2){
+                        uart_putc_raw(HC06_UART_ID, 'S');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                    }
+                    if(d.button==3){                    
+                        uart_putc_raw(HC06_UART_ID, 'J');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+
+                    }
+                    if(d.button==4){                    
+                        uart_putc_raw(HC06_UART_ID, 'K');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                    }
+                    if(d.button==5){                    
+                        uart_putc_raw(HC06_UART_ID, 'L');
+                        uart_putc_raw(HC06_UART_ID, d.level);
+                    }
+                }
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
-
 int main() {
     stdio_init_all();
     xQueueBTN = xQueueCreate(32, sizeof(data));
@@ -209,14 +225,14 @@ int main() {
     gpio_pull_up(L_button);
 
     xTaskCreate(hc06_task, "UART_Task 1", 4096, NULL, 1, NULL);
-    // xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
+    xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
     gpio_set_irq_enabled_with_callback(A_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &btn_callback);
     gpio_set_irq_enabled(S_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(J_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(K_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(L_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     
-    //xSemaphore_r = xSemaphoreCreateBinary();
+    xSemaphore_r = xSemaphoreCreateBinary();
     vTaskStartScheduler();
 
     while (true)
