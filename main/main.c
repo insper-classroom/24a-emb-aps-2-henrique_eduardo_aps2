@@ -17,6 +17,8 @@
 #define L_button 15
 #define ADC_y 26
 #define ADC_y_ID 0
+#define ADC_Sound 27
+#define ADC_Sound_ID 1
 
 QueueHandle_t xQueueBTN;
 SemaphoreHandle_t xSemaphore_r;
@@ -139,6 +141,38 @@ void y_task(void *p) {
     }
 }
 
+void sound_task(void *p) {
+    adc_init();
+    adc_gpio_init(ADC_Sound);
+    int envia = 0;
+    while(true) {
+        adc_select_input(ADC_Sound_ID);
+    
+        int adc_value = adc_read();
+        adc_value = adc_value * 100 / 4095;
+        
+        data d;
+        d.button = 6;
+        if (adc_value < 10)
+        {
+            d.level = -1;
+        }
+        else if (adc_value > 90)
+        {
+            d.level = 1;
+        }
+        else
+        {
+            d.button = 7;
+            d.level = 0;
+        }
+        
+        xQueueSendFromISR(xQueueBTN, &d, 0);
+        
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
 void hc06_task(void *p) {
     uart_init(HC06_UART_ID, HC06_BAUD_RATE);
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
@@ -147,7 +181,12 @@ void hc06_task(void *p) {
     data d;
     while (true) {
         if (xQueueReceive(xQueueBTN,&d,pdMS_TO_TICKS(100))){
-            if (d.level == 0)
+            if(d.button==6){                    
+                uart_putc_raw(HC06_UART_ID, 'M');
+                uart_putc_raw(HC06_UART_ID, d.level);
+            }
+            
+            else if (d.level == 0)
             {
                 if(d.button==1){                    
                     uart_putc_raw(HC06_UART_ID, 'A');
@@ -224,8 +263,9 @@ int main() {
     gpio_set_dir(L_button,GPIO_IN);
     gpio_pull_up(L_button);
 
-    xTaskCreate(hc06_task, "UART_Task 1", 4096, NULL, 1, NULL);
+    xTaskCreate(hc06_task, "UART_Task 1", 4095, NULL, 1, NULL);
     xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
+    xTaskCreate(sound_task, "sound_task", 4095, NULL, 1, NULL);
     gpio_set_irq_enabled_with_callback(A_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &btn_callback);
     gpio_set_irq_enabled(S_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(J_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);

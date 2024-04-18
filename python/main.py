@@ -8,7 +8,9 @@ device = uinput.Device([
     uinput.KEY_K,
     uinput.KEY_L,
     uinput.KEY_S,
-    uinput.KEY_J
+    uinput.KEY_J,
+    uinput.KEY_VOLUMEUP,
+    uinput.KEY_VOLUMEDOWN
 ])
 
 
@@ -43,6 +45,13 @@ try:
                 print("S chegou")
                 #device.emit_click(uinput.KEY_S)
                 device.emit(uinput.KEY_S, up_down)
+            if chr(button) == 'M':
+                print("M chegou")
+                #device.emit_click(uinput.KEY_S)
+                if (up_down == 255):
+                    device.emit_click(uinput.KEY_VOLUMEDOWN)
+                if (up_down == 1):
+                    device.emit_click(uinput.KEY_VOLUMEUP)
 
 except KeyboardInterrupt:
     print("Program terminated by user")
