@@ -55,7 +55,6 @@ void btn_callback(uint gpio, uint32_t events){
         }
         if (gpio == Button_Reset)
         {
-            printf("Reset\n");
             byteArray = 0b0000010000000000 | byteArray;            
         }
         
@@ -154,7 +153,7 @@ void hc06_task(void *p) {
     uart_init(HC06_UART_ID, HC06_BAUD_RATE);
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
-    hc06_init("Bolsonaro2026", "1722");
+    hc06_init("Tumas", "12345");
     gpio_put(LED1_G, 1);
     gpio_put(LED2_G, 1);
     int received_bytes;
