@@ -101,7 +101,7 @@ void btn_callback(uint gpio, uint32_t events){
 void y_task(void *p) {
     adc_init();
     adc_gpio_init(ADC_y);
-    int byteArray = 0b0000000000000000;
+    
     int mudou = 0;
     while(true) {
         adc_select_input(ADC_y_ID);
@@ -110,20 +110,20 @@ void y_task(void *p) {
         result = result * 255 / 2047;
          
         if (result < -240 && mudou == 1) {                 
-            byteArray = 0b0000000010000000;
+            int byteArray = 0b0000000010000000;
             xQueueSendToFront(xQueueBTNSet, &byteArray,0);
             mudou = 0;
         }
 
         if (result > 240 && mudou == 1)
         {
-            byteArray = 0b0000000001000000;
-             xQueueSendToFront(xQueueBTNSet, &byteArray, 0);
-             mudou = 0;
+            int byteArray = 0b0000000001000000;
+            xQueueSendToFront(xQueueBTNSet, &byteArray, 0);
+            mudou = 0;
         }
         
         if ((result < 230 && result > -230) && mudou == 0) {                 
-            byteArray = 0b1111111100111111;
+            int byteArray = 0b1111111100111111;
             xQueueSend(xQueueBTNClear, &byteArray, 0);
             mudou = 1;
         }
@@ -135,7 +135,7 @@ void y_task(void *p) {
 void sound_task(void *p) {
     adc_init();
     adc_gpio_init(ADC_Sound);
-    int byteArray = 0b0000000000000000;
+    
     int mudou = 0;
     while(true) {
         adc_select_input(ADC_Sound_ID);
@@ -143,19 +143,19 @@ void sound_task(void *p) {
         adc_value = adc_value * 100 / 4095;
         if (adc_value < 5 && mudou == 1)
         {
-            byteArray = 0b0000000100000000;    
+            int byteArray = 0b0000000100000000;    
             xQueueSend(xQueueBTNSet, &byteArray,0);
             mudou = 0;
         }
         else if (adc_value > 90 && mudou == 1)
         {
-            byteArray = 0b0000001000000000; 
+            int byteArray = 0b0000001000000000; 
             xQueueSend(xQueueBTNSet, &byteArray,0);
             mudou = 0;
         }
         else
         {
-            byteArray = 0b1111110011111111;
+            int byteArray = 0b1111110011111111;
             xQueueSend(xQueueBTNClear, &byteArray, 0);
             mudou = 1;
         }
