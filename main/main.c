@@ -28,12 +28,14 @@
 #define LED2_G 20
 #define LED2_B 21
 
-QueueHandle_t xQueueBTN;
-SemaphoreHandle_t xSemaphore_r;
+QueueHandle_t xQueueBTNSet;
+QueueHandle_t xQueueBTNClear;
 
-volatile int byteArray = 0b0000000000000000;
+
 void btn_callback(uint gpio, uint32_t events){
+
     if(events == GPIO_IRQ_EDGE_FALL){
+        int byteArray = 0b0000000000000000;
         if(gpio == A_button){
             byteArray = 0b0000000000000001 | byteArray;
         }
@@ -57,11 +59,14 @@ void btn_callback(uint gpio, uint32_t events){
         {
             byteArray = 0b0000010000000000 | byteArray;            
         }
+
+        xQueueSendToFrontFromISR(xQueueBTNSet, &byteArray, 0);
         
         
     }
 
     if(events == GPIO_IRQ_EDGE_RISE){
+        int byteArray = 0b111111111111111;
         if(gpio == A_button){
             byteArray = 0b111111111111110 & byteArray;
         }
@@ -85,32 +90,42 @@ void btn_callback(uint gpio, uint32_t events){
         {
             byteArray = 0b1111101111111111 & byteArray;            
         }
+
+        xQueueSendToFrontFromISR(xQueueBTNClear, &byteArray, 0);
+
     }
+
+   
 }
 
 void y_task(void *p) {
     adc_init();
     adc_gpio_init(ADC_y);
+    int byteArray = 0b0000000000000000;
+    int mudou = 0;
     while(true) {
         adc_select_input(ADC_y_ID);
-    
         int result = adc_read();
         result -= 2047;
         result = result * 255 / 2047;
          
-        if (result < -240) {                 
-            byteArray = 0b0000000010000000 | byteArray;
+        if (result < -240 && mudou == 1) {                 
+            byteArray = 0b0000000010000000;
+            xQueueSendToFront(xQueueBTNSet, &byteArray,0);
+            mudou = 0;
         }
 
-        if (result > 240)
+        if (result > 240 && mudou == 1)
         {
-            byteArray = 0b0000000001000000 | byteArray;
+            byteArray = 0b0000000001000000;
+             xQueueSendToFront(xQueueBTNSet, &byteArray, 0);
+             mudou = 0;
         }
         
-
-        if ((result < 230 && result > -230)) {                 
-            byteArray = 0b111111101111111 & byteArray;
-            byteArray = 0b111111110111111 & byteArray;
+        if ((result < 230 && result > -230) && mudou == 0) {                 
+            byteArray = 0b1111111100111111;
+            xQueueSend(xQueueBTNClear, &byteArray, 0);
+            mudou = 1;
         }
         
         vTaskDelay(pdMS_TO_TICKS(1));
@@ -120,32 +135,39 @@ void y_task(void *p) {
 void sound_task(void *p) {
     adc_init();
     adc_gpio_init(ADC_Sound);
+    int byteArray = 0b0000000000000000;
+    int mudou = 0;
     while(true) {
         adc_select_input(ADC_Sound_ID);
         int adc_value = adc_read();
         adc_value = adc_value * 100 / 4095;
-        if (adc_value < 5 && adc_value > -1)
+        if (adc_value < 5 && mudou == 1)
         {
-            byteArray = 0b0000000100000000 | byteArray;             
+            byteArray = 0b0000000100000000;    
+            xQueueSend(xQueueBTNSet, &byteArray,0);
+            mudou = 0;
         }
-        else if (adc_value > 90 && adc_value < 110)
+        else if (adc_value > 90 && mudou == 1)
         {
-            byteArray = 0b0000001000000000 | byteArray; 
+            byteArray = 0b0000001000000000; 
+            xQueueSend(xQueueBTNSet, &byteArray,0);
+            mudou = 0;
         }
         else
         {
-            byteArray = 0b1111110111111111 & byteArray;
-            byteArray = 0b1111111011111111 & byteArray;
+            byteArray = 0b1111110011111111;
+            xQueueSend(xQueueBTNClear, &byteArray, 0);
+            mudou = 1;
         }
     }
 }
 
-bool timer_0_callback(repeating_timer_t *rt) {
-    int bytes = byteArray;
-    xQueueSendFromISR(xQueueBTN, &bytes, 0);
+// bool timer_0_callback(repeating_timer_t *rt) {
+//     int bytes = byteArray;
+//     xQueueSendFromISR(xQueueBTN, &bytes, 0);
 
-    return true; // keep repeating
-}
+//     return true; // keep repeating
+// }
 
 void hc06_task(void *p) {
     gpio_put(LED1_R, 1);
@@ -158,31 +180,49 @@ void hc06_task(void *p) {
     gpio_put(LED2_G, 1);
     int received_bytes;
     char d[2];
-    repeating_timer_t timer_0;
+    // repeating_timer_t timer_0;
 
-    if (!add_repeating_timer_us(20000, 
-                                timer_0_callback,
-                                NULL, 
-                                &timer_0)) {
-        printf("Failed to add timer\n");
-    }
+    // if (!add_repeating_timer_us(20000, 
+    //                             timer_0_callback,
+    //                             NULL, 
+    //                             &timer_0)) {
+    //     printf("Failed to add timer\n");
+    // }
+ 
+    int byteArray = 0b0000000000000000;
+    int update = 0;
+
     while (true) {
-        if (xQueueReceive(xQueueBTN,&received_bytes,pdMS_TO_TICKS(100))){
-            d[0] = (received_bytes >> 8) & 0xFF; // First 8 bytes
-            d[1] = received_bytes & 0xFF;        // Last 8 bytes
+        if (xQueueReceive(xQueueBTNClear,&received_bytes, 10)){
+            byteArray = byteArray & received_bytes;
+            update = 1;
+        }
+
+        if (xQueueReceive(xQueueBTNSet,&received_bytes, 10)){
+            byteArray = byteArray | received_bytes;
+            update = 1;
+        }
+
+        if (update == 1 || update == 20) {
+            d[0] = (byteArray >> 8) & 0xFF; // First 8 bytes
+            d[1] = byteArray & 0xFF;        // Last 8 bytes
 
             // Send the characters over UART
             uart_putc_raw(HC06_UART_ID, d[0]);
             uart_putc_raw(HC06_UART_ID, d[1]);
+            update = 0;
+        } else {
+            update++;
         }
         
-        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 int main() {
     stdio_init_all();
 
-    xQueueBTN = xQueueCreate(16, sizeof(int));
+    xQueueBTNSet = xQueueCreate(16, sizeof(int));
+    xQueueBTNClear = xQueueCreate(16, sizeof(int));
+
 
     gpio_init(A_button);
     gpio_set_dir(A_button,GPIO_IN);
@@ -230,7 +270,6 @@ int main() {
     gpio_set_irq_enabled(Button_Overload, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(Button_Reset, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     
-    xSemaphore_r = xSemaphoreCreateBinary();
     vTaskStartScheduler();
 
     while (true)

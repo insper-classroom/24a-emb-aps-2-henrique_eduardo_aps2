@@ -14,7 +14,8 @@ device = uinput.Device([
     uinput.KEY_UP,
     uinput.KEY_DOWN,
     uinput.KEY_H,
-    uinput.KEY_ENTER
+    uinput.KEY_LEFTALT,
+    uinput.KEY_F4
 ])
 
 button = [uinput.KEY_VOLUMEUP, uinput.KEY_VOLUMEDOWN, uinput.KEY_UP, uinput.KEY_DOWN, uinput.KEY_H, uinput.KEY_L, uinput.KEY_K, uinput.KEY_J, uinput.KEY_S, uinput.KEY_A]
@@ -46,7 +47,7 @@ try:
             while (i < 16):
                 if abs((15 - i)) == 10:
                     if bits[i] == 1:
-                        device.emit_combo([uinput.KEY_ENTER, uinput.KEY_DOWN, uinput.KEY_A])
+                        device.emit_combo([uinput.KEY_LEFTALT, uinput.KEY_F4])
                 else:
                     o = abs(6 - i)
                     device.emit(button[o], bits[i])
