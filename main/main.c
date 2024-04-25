@@ -33,7 +33,6 @@ SemaphoreHandle_t xSemaphore_r;
 
 volatile int byteArray = 0b0000000000000000;
 void btn_callback(uint gpio, uint32_t events){
-    int button_pressed;
     if(events == GPIO_IRQ_EDGE_FALL){
         if(gpio == A_button){
             byteArray = 0b0000000000000001 | byteArray;
@@ -85,7 +84,6 @@ void btn_callback(uint gpio, uint32_t events){
         }
         if (gpio == Button_Reset)
         {
-            printf("Reset OFF\n");
             byteArray = 0b1111101111111111 & byteArray;            
         }
     }
@@ -101,17 +99,17 @@ void y_task(void *p) {
         result -= 2047;
         result = result * 255 / 2047;
          
-        if (result > 240) {                 
+        if (result < -240) {                 
             byteArray = 0b0000000010000000 | byteArray;
         }
 
-        if (result < -240)
+        if (result > 240)
         {
             byteArray = 0b0000000001000000 | byteArray;
         }
         
 
-        if ((result < 200 && result > -200)) {                 
+        if ((result < 230 && result > -230)) {                 
             byteArray = 0b111111101111111 & byteArray;
             byteArray = 0b111111110111111 & byteArray;
         }
@@ -127,15 +125,12 @@ void sound_task(void *p) {
         adc_select_input(ADC_Sound_ID);
         int adc_value = adc_read();
         adc_value = adc_value * 100 / 4095;
-        char c;
         if (adc_value < 5 && adc_value > -1)
         {
-            printf("AQUI NO -\n");
             byteArray = 0b0000000100000000 | byteArray;             
         }
         else if (adc_value > 90 && adc_value < 110)
         {
-            printf("AQUI NO +\n");
             byteArray = 0b0000001000000000 | byteArray; 
         }
         else
