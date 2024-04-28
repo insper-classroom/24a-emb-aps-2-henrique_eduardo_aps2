@@ -1,9 +1,31 @@
 # APS 2 Computação Embarcada: Controle de Guitar Hero
 
-Este projeto demonstra a interação entre botões, sensores analógicos e um módulo Bluetooth HC06 utilizando o sistema operacional FreeRTOS em uma placa Pico. O código é organizado em tasks e utiliza filas para comunicação entre elas.
+Este projeto demonstra a interação entre botões, sensores analógicos e um módulo Bluetooth HC06 utilizando o sistema operacional FreeRTOS em uma placa Pico. O código é organizado em tasks e utiliza filas para comunicação entre elas. Tudo isso foi utilizado para simular um controle de Guitar Hero, onde os botões e sensores analógicos são utilizados para simular os botões de um teclado e deixar a interação com o jogo maior.
+
+### Integrantes
+
+- **Henrique Fazzio Badin**
+- **Eduardo Selber Castanho**
+
+### Foto do Dispositivo
+
+![Foto_Dispositivo](./midia/Guitarra.png)
+
+### Vídeo de Demonstração
+
+[Vídeo de Demonstação](https://www.youtube.com/watch?v=NUJswSWtMAg)
+
+### Bibliotecas Utilizadas
+
+- **Serial** (UART): Utilizada para comunicação serial com o módulo Bluetooth HC06.
+- **Uinput**: Utilizada para simular a entrada de teclas no sistema operacional.
+- **FreeRTOS**: Utilizada para gerenciar as tasks e filas do projeto.
+- Bibliotecas padrão da Pico e de códigos C.
+- Bibliotecas de interrupção e de ADC.
 
 ### Funcionalidades
 
+- O controle é conectado a uma bateria que, quando se ativa um switch, liga o controle e o deixa pronto para ser conectado ao computador.
 - Leitura do estado de 7 botões (A, S, J, K, L, H, ALT + F4)
 - Leitura de 2 sensores analógicos (Um analógico que simula uma paleta e um potenciômetro que atua como um regulador de som)
 - Detecção de quando se está pressionando e quando se solta o botão
@@ -27,7 +49,7 @@ Este projeto demonstra a interação entre botões, sensores analógicos e um m�
 
 ### Diagrama do projeto
 
-![Diagrama](img/Diagrama_Guitarra.drawio.png)
+![Diagrama](./midia/Diagrama_Guitarra.drawio.png)
 
 ### Descrição das Tasks
 
