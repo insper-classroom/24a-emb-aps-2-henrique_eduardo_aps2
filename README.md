@@ -1,38 +1,39 @@
-# HC06 examplo
+# APS 2 Computação Embarcada: Controle de Guitar Hero
 
-Conectar HC06 no 5V e gnd, pino TX no `GP5` e pino RX no `GP4`. Também é necessário conectar o pino `STATE` do bluetooth no pino `GP3`.
+Este projeto demonstra a interação entre botões, sensores analógicos e um módulo Bluetooth HC06 utilizando o sistema operacional FreeRTOS em uma placa Pico. O código é organizado em tasks e utiliza filas para comunicação entre elas.
 
-O projeto está organizado da seguinte maneira:
+### Funcionalidades
 
-- `hc06.h`: Arquivo de headfile com configurações do HC06, tais como pinos, uart, ..
-- `hc06.c`: Arquivo `.c` com implementação das funções auxiliares para configurar o módulo bluetooth
-    - `bool hc06_check_connection();`
-    - `bool hc06_set_name(char name[]);`
-    - `bool hc06_set_pin(char pin[]);`
-    - `bool hc06_set_at_mode(int on);`
-    - `bool hc06_init(char name[], char pin[]);`
+- Leitura do estado de 5 botões (A, S, J, K, L)
+- Leitura de 2 sensores analógicos (ADC_y e ADC_Sound)
+- Detecção de pressão longa e curta nos botões e sensores
+- Envio dos dados combinados dos botões e sensores através do módulo Bluetooth HC06
+- Indicação visual do estado da conexão Bluetooth (LED azul aceso)
 
-- `main.c` Arquivo principal com inicialização do módulo bluetooth
+### Componentes Utilizados
 
-```c
-void hc06_task(void *p) {
-    uart_init(HC06_UART_ID, HC06_BAUD_RATE);
-    gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
-    hc06_init("aps2_legal", "1234");
+- **Microcontrolador:** Pico (RP2040)
+- **Botões:** 5 botões (A, S, J, K, L)
+- **Sensores Analógicos:** 2 sensores analógicos (ADC_y e ADC_Sound)
+- **Módulo Bluetooth:** HC06
+- **LEDs:** 2 LEDs (vermelho e azul)
 
-    while (true) {
-        uart_puts(HC06_UART_ID, "OLAAA ");
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
-```
+### Descrição dos Componentes
 
-Extra ao que foi feito em sala de aula, eu adicionei o `hc06_set_at_mode` que força o módulo bluetooth entrar em modo `AT`, caso contrário ele fica 
-conectado no equipamento e não recebe mais comandos.
+- **Botões:** Os botões são conectados como entradas digitais (GPIO) com resistores pull-up para garantir nível lógico alto na ausência de pressão. A interrupção por borda é utilizada para detectar o pressionamento e liberação dos botões.
+- **Sensores Analógicos:** Os sensores analógicos são conectados a pinos ADC (conversor analógico-digital) do microcontrolador. A função `adc_read` converte a tensão lida do sensor em um valor digital.
+- **Módulo Bluetooth HC06:** O módulo Bluetooth HC06 é configurado para comunicação serial com a placa Pico. A task `hc06_task` é responsável por enviar os dados combinados dos botões e sensores através da UART.
+- **LEDs:** Um LED vermelho é utilizado para fins de debugging e os LEDs vermelho e verde são utilizados para indicar o estado da conexão Bluetooth (azul aceso quando conectado).
 
-## No linux
+### Descrição das Tasks
 
-Para conectar o bluetooth no linux usar os passos descritos no site:
+- **`hc06_task`:** Esta task inicializa a comunicação serial com o módulo Bluetooth HC06, recebe dados da fila `xQueueState` para atualizar o LED de status da conexão e lê as filas `xQueueBTNSet` e `xQueueBTNClear` para empacotar os dados dos botões e sensores. Por fim, envia os dados empacotados através da UART.
+- **`y_task`:** Esta task lê o sensor analógico `ADC_y`, detecta pressão longa e curta e envia o dado codificado para a fila `xQueueBTNSet`.
+- **`sound_task`:** Esta task lê o sensor analógico `ADC_Sound`, detecta pressão longa e curta e envia o dado codificado para a fila `xQueueBTNSet`.
+- **`btn_callback`:** Esta função de callback é chamada por interrupção sempre que ocorre uma mudança de estado (pressão ou liberação) em algum dos botões. O estado do botão pressionado é codificado em um byte e enviado para a fila adequada (`xQueueBTNSet` para pressão ou `xQueueBTNClear` para liberação).
 
-- https://marcqueiroz.wordpress.com/aventuras-com-arduino/configurando-hc-06-bluetooth-module-device-no-ubuntu-12-04/
+### Descrição das Filas
+
+- **`xQueueBTNSet`:** Esta fila é utilizada para enviar o código do botão pressionado indicando pressão longa ou curta.
+- **`xQueueBTNClear`:** Esta fila é utilizada para enviar o código do botão liberado, indicando o fim da pressão.
+- **`xQueueState`:** Esta fila é utilizada para enviar o estado da conexão Bluetooth (conectado ou desconectado) para a task `hc06_task` atualizar o LED de status.
