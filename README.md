@@ -25,7 +25,7 @@ Este projeto demonstra a interação entre botões, sensores analógicos e um m�
 
 ### Funcionalidades
 
-- O controle é conectado a uma bateria que, quando se ativa um switch, liga o controle e o deixa pronto para ser conectado ao computador.
+- O controle é conectado a uma bateria que, quando se ativa um switch, energiza o dispositivo e o deixa pronto para ser conectado ao computador.
 - Leitura do estado de 7 botões (A, S, J, K, L, H, ALT + F4)
 - Leitura de 2 sensores analógicos (Um analógico que simula uma paleta e um potenciômetro que atua como um regulador de som)
 - Detecção de quando se está pressionando e quando se solta o botão
