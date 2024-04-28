@@ -60,13 +60,7 @@ void btn_callback(uint gpio, uint32_t events){
         if (gpio == Button_Reset)
         {
             byteArray = 0b0000010000000000 | byteArray;            
-        }
-        if (gpio == Bluetooth_State)
-        {
-            int state = 1;
-            xQueueSendToFrontFromISR(xQueueState, &state, 0);
-        }
-        
+        }        
 
         xQueueSendToFrontFromISR(xQueueBTNSet, &byteArray, 0);
     }
@@ -95,6 +89,11 @@ void btn_callback(uint gpio, uint32_t events){
         if (gpio == Button_Reset)
         {
             byteArray = 0b1111101111111111 & byteArray;            
+        }
+        if (gpio == Bluetooth_State)
+        {
+            int state = 1;
+            xQueueSendToFrontFromISR(xQueueState, &state, 0);
         }
 
         xQueueSendToFrontFromISR(xQueueBTNClear, &byteArray, 0);
@@ -135,27 +134,6 @@ void y_task(void *p) {
         
         vTaskDelay(pdMS_TO_TICKS(1));
     }
-}
-
-void checkBluetooth_task(void *p) {
-    int status = 0;
-    while (true)
-    {
-        xQueueReceive(xQueueState,&status, 0);
-
-        if (status == 1) {
-            gpio_put(LED1_B, 1);
-        }
-
-        else
-        {
-            gpio_put(LED1_R, 1);
-            vTaskDelay(pdMS_TO_TICKS(500));
-            gpio_put(LED1_R, 0);
-            vTaskDelay(pdMS_TO_TICKS(500));
-        }
-    }
-    
 }
 
 void sound_task(void *p) {
@@ -213,9 +191,23 @@ void hc06_task(void *p) {
  
     int byteArray = 0b0000000000000000;
     int update = 0;
+    int status = 0;
 
     while (true) {
+        if (xQueueReceive(xQueueState, &status, 0))
+        {
+            if (status == 1) {
+                gpio_put(LED2_B, 1);
+            }
+        }
         
+        if (status == 0) {
+            gpio_put(LED2_G, 1);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            gpio_put(LED2_G, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+
         if (xQueueReceive(xQueueBTNClear,&received_bytes, 10)){
             byteArray = byteArray & received_bytes;
             update = 1;
@@ -287,7 +279,6 @@ int main() {
     xTaskCreate(hc06_task, "UART_Task 1", 4095, NULL, 1, NULL);
     xTaskCreate(y_task, "y_task", 4095, NULL, 1, NULL);
     xTaskCreate(sound_task, "sound_task", 4095, NULL, 1, NULL);
-    xTaskCreate(checkBluetooth_task, "checkBluetooth_task", 4095, NULL, 1, NULL);
     gpio_set_irq_enabled_with_callback(A_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &btn_callback);
     gpio_set_irq_enabled(S_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(J_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
