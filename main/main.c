@@ -27,9 +27,10 @@
 #define LED2_R 19
 #define LED2_G 20
 #define LED2_B 21
+#define Bluetooth_State 9
 
 QueueHandle_t xQueueBTN;
-SemaphoreHandle_t xSemaphore_r;
+QueueHandle_t xQueueState;
 
 volatile int byteArray = 0b0000000000000000;
 void btn_callback(uint gpio, uint32_t events){
@@ -58,7 +59,6 @@ void btn_callback(uint gpio, uint32_t events){
             byteArray = 0b0000010000000000 | byteArray;            
         }
         
-        
     }
 
     if(events == GPIO_IRQ_EDGE_RISE){
@@ -84,6 +84,11 @@ void btn_callback(uint gpio, uint32_t events){
         if (gpio == Button_Reset)
         {
             byteArray = 0b1111101111111111 & byteArray;            
+        }
+        if (gpio == Bluetooth_State)
+        {
+            int state = 1;
+            xQueueSendToFrontFromISR(xQueueState, &state, 0);
         }
     }
 }
@@ -148,16 +153,16 @@ bool timer_0_callback(repeating_timer_t *rt) {
 }
 
 void hc06_task(void *p) {
-    gpio_put(LED1_R, 1);
-    gpio_put(LED2_R, 1);
+    //gpio_put(LED1_R, 1);
     uart_init(HC06_UART_ID, HC06_BAUD_RATE);
     gpio_set_function(HC06_TX_PIN, GPIO_FUNC_UART);
     gpio_set_function(HC06_RX_PIN, GPIO_FUNC_UART);
     hc06_init("Tumas", "12345");
-    gpio_put(LED1_G, 1);
-    gpio_put(LED2_G, 1);
+    //gpio_put(LED1_B, 1);
+
     int received_bytes;
     char d[2];
+    int status = 0;
     repeating_timer_t timer_0;
 
     if (!add_repeating_timer_us(20000, 
@@ -167,6 +172,18 @@ void hc06_task(void *p) {
         printf("Failed to add timer\n");
     }
     while (true) {
+        if(xQueueReceive(xQueueState,&status, 0)) {
+            if (status == 1) {
+                gpio_put(LED2_G, 0);
+                gpio_put(LED2_B, 1);
+            }
+        }
+        if (status == 0) {
+            gpio_put(LED2_G, 1);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            gpio_put(LED2_G, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
         if (xQueueReceive(xQueueBTN,&received_bytes,pdMS_TO_TICKS(100))){
             d[0] = (received_bytes >> 8) & 0xFF; // First 8 bytes
             d[1] = received_bytes & 0xFF;        // Last 8 bytes
@@ -183,6 +200,7 @@ int main() {
     stdio_init_all();
 
     xQueueBTN = xQueueCreate(16, sizeof(int));
+    xQueueState = xQueueCreate(16, sizeof(int));
 
     gpio_init(A_button);
     gpio_set_dir(A_button,GPIO_IN);
@@ -217,6 +235,8 @@ int main() {
     gpio_init(Button_Reset);
     gpio_set_dir(Button_Reset,GPIO_IN);
     gpio_pull_up(Button_Reset);
+    gpio_init(Bluetooth_State);
+    gpio_set_dir(Bluetooth_State,GPIO_IN);
     
 
     xTaskCreate(hc06_task, "UART_Task 1", 4095, NULL, 1, NULL);
@@ -229,8 +249,8 @@ int main() {
     gpio_set_irq_enabled(L_button, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(Button_Overload, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     gpio_set_irq_enabled(Button_Reset, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
+    gpio_set_irq_enabled(Bluetooth_State, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE , true);
     
-    xSemaphore_r = xSemaphoreCreateBinary();
     vTaskStartScheduler();
 
     while (true)
