@@ -4,36 +4,40 @@ Este projeto demonstra a interação entre botões, sensores analógicos e um m�
 
 ### Funcionalidades
 
-- Leitura do estado de 5 botões (A, S, J, K, L)
-- Leitura de 2 sensores analógicos (ADC_y e ADC_Sound)
-- Detecção de pressão longa e curta nos botões e sensores
+- Leitura do estado de 7 botões (A, S, J, K, L, H, ALT + F4)
+- Leitura de 2 sensores analógicos (Um analógico que simula uma paleta e um potenciômetro que atua como um regulador de som)
+- Detecção de quando se está pressionando e quando se solta o botão
 - Envio dos dados combinados dos botões e sensores através do módulo Bluetooth HC06
 - Indicação visual do estado da conexão Bluetooth (LED azul aceso)
 
 ### Componentes Utilizados
 
 - **Microcontrolador:** Pico (RP2040)
-- **Botões:** 5 botões (A, S, J, K, L)
-- **Sensores Analógicos:** 2 sensores analógicos (ADC_y e ADC_Sound)
+- **Botões:** 7 botões (A, S, J, K, L, H, ALT + F4)
+- **Sensores Analógicos:** 2 sensores analógicos (Analógico de controle e Potenciômetro)
 - **Módulo Bluetooth:** HC06
-- **LEDs:** 2 LEDs (vermelho e azul)
+- **LEDs:** 1 LED RGB
 
 ### Descrição dos Componentes
 
-- **Botões:** Os botões são conectados como entradas digitais (GPIO) com resistores pull-up para garantir nível lógico alto na ausência de pressão. A interrupção por borda é utilizada para detectar o pressionamento e liberação dos botões.
+- **Botões:** Os botões são conectados como entradas digitais (GPIO). A interrupção por borda é utilizada para detectar o pressionamento e liberação dos botões.
 - **Sensores Analógicos:** Os sensores analógicos são conectados a pinos ADC (conversor analógico-digital) do microcontrolador. A função `adc_read` converte a tensão lida do sensor em um valor digital.
 - **Módulo Bluetooth HC06:** O módulo Bluetooth HC06 é configurado para comunicação serial com a placa Pico. A task `hc06_task` é responsável por enviar os dados combinados dos botões e sensores através da UART.
-- **LEDs:** Um LED vermelho é utilizado para fins de debugging e os LEDs vermelho e verde são utilizados para indicar o estado da conexão Bluetooth (azul aceso quando conectado).
+- **LEDs:** Um LED verde é utilizado para indicar o estado da conexão Bluetooth (azul aceso quando conectado, verde piscando quando pronto para conectar).
+
+### Diagrama do projeto
+
+![Diagrama](img/Diagrama_Guitarra.drawio.png)
 
 ### Descrição das Tasks
 
 - **`hc06_task`:** Esta task inicializa a comunicação serial com o módulo Bluetooth HC06, recebe dados da fila `xQueueState` para atualizar o LED de status da conexão e lê as filas `xQueueBTNSet` e `xQueueBTNClear` para empacotar os dados dos botões e sensores. Por fim, envia os dados empacotados através da UART.
-- **`y_task`:** Esta task lê o sensor analógico `ADC_y`, detecta pressão longa e curta e envia o dado codificado para a fila `xQueueBTNSet`.
-- **`sound_task`:** Esta task lê o sensor analógico `ADC_Sound`, detecta pressão longa e curta e envia o dado codificado para a fila `xQueueBTNSet`.
-- **`btn_callback`:** Esta função de callback é chamada por interrupção sempre que ocorre uma mudança de estado (pressão ou liberação) em algum dos botões. O estado do botão pressionado é codificado em um byte e enviado para a fila adequada (`xQueueBTNSet` para pressão ou `xQueueBTNClear` para liberação).
+- **`y_task`:** Esta task lê o sensor analógico `ADC_y`. Quando o analógico é colocado em uma das extremidades do eixo y, um dado é enviado para a queue `xQueueBTNSet` e quando o analógico volta para uma região central um dado que cancela a informação anterior é enviada na queue `xQueueBTNClear`.
+- **`sound_task`:** Esta task lê o sensor analógico `ADC_Sound`. Quando o potenciômetro é girado até uma de suas extremidades, um dado é enviado para a queue `xQueueBTNSet` e quando o potenciômetro volta para uma região central um dado que cancela a informação anterior é enviada na queue `xQueueBTNClear`..
+- **`btn_callback`:** Esta função de callback é chamada por interrupção sempre que ocorre uma mudança de estado (pressão ou liberação) em algum dos botões. O estado do botão pressionado é codificado em bytes e enviado para a fila adequada (`xQueueBTNSet` para pressão ou `xQueueBTNClear` para liberação).
 
 ### Descrição das Filas
 
-- **`xQueueBTNSet`:** Esta fila é utilizada para enviar o código do botão pressionado indicando pressão longa ou curta.
-- **`xQueueBTNClear`:** Esta fila é utilizada para enviar o código do botão liberado, indicando o fim da pressão.
+- **`xQueueBTNSet`:** Esta fila é utilizada para enviar dados codificados em bytes de quais os botões/sesores que estão sendo atuando no momento.
+- **`xQueueBTNClear`:** Esta fila é utilizada para enviar dados codificados em bytes de quais os botões/sensores que deixaram de atuar no momento, basicamente cancelando as informações que deixam de acontecer.
 - **`xQueueState`:** Esta fila é utilizada para enviar o estado da conexão Bluetooth (conectado ou desconectado) para a task `hc06_task` atualizar o LED de status.
